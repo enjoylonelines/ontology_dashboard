@@ -1103,8 +1103,25 @@ def _agent_review_readiness_trace(summary: dict[str, Any] | None, trace: dict[st
             if summary is not None and materialization.get("status") == "ready" and not trace.get("fallback")
             else "INELIGIBLE"
         )
+    # Evidence gaps are copied from the packet into a contract-validated summary.
+    # They remain useful when prose is withheld, but never expose raw validator output.
+    evidence_gaps = []
+    if summary is not None and not trace.get("fallback_validation_errors"):
+        for gap in summary.get("evidence_gaps") or []:
+            if not isinstance(gap, dict):
+                continue
+            field = str(gap.get("field") or "").strip()
+            reason = str(gap.get("reason") or "").strip()
+            owner_domain = str(gap.get("owner_domain") or "").strip()
+            if field and reason:
+                evidence_gaps.append({
+                    "field": field,
+                    "reason": reason,
+                    "owner_domain": owner_domain,
+                })
     return {
         **trace,
+        "evidence_gaps": evidence_gaps,
         "reuse_eligibility": reuse_eligibility,
         "current_ready": reuse_eligibility == "EXACT_VALIDATED",
         "historical_available": reuse_eligibility == "LATEST_STORED",

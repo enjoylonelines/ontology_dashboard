@@ -45,11 +45,14 @@ it.each(["fallback", "wrong-asset"])("does not show %s prose", async kind => {
   if (kind === "fallback") {
     value.trace.fallback = true;
     value.trace.reason = "summary_validation_failed";
+    value.trace.evidence_gaps = [{ field: "operation_context", reason: "operation_context_missing_or_unresolved", owner_domain: "operations" }];
   }
   get.mockResolvedValue(value); await render(); expect(host.querySelector(".natural-briefing-line")).toBeNull();
   if (kind === "fallback") {
-    expect(host.textContent).toContain("응답 검증을 통과하지 못했습니다");
-    expect(host.textContent).toContain("현재 판단으로 사용하지 않습니다");
+    expect(host.textContent).toContain("현재 근거 확인 규칙과 일치하지 않아");
+    expect(host.textContent).toContain("현재 판단에 사용하지 않습니다");
+    expect(host.textContent).toContain("확인할 데이터");
+    expect(host.textContent).toContain("생산 일정과 작업 조건이 연결되지 않았습니다");
   }
 });
 it.each(["fallback", "stale"] as const)("shows stored %s prose when it is a saved record", async status => {
@@ -92,6 +95,18 @@ it("rereads the validated stored result after explicit generation", async () => 
   await act(async () => host.querySelector<HTMLButtonElement>("button")!.click());
   expect(post).toHaveBeenCalledTimes(1); expect(host.textContent).toContain("새로 저장된 설명");
 });
+it("uses the same safe explanation after an explicit generation is withheld", async () => {
+  await render();
+  const withheld = response();
+  withheld.trace.fallback = true;
+  withheld.trace.reason = "summary_validation_failed";
+  withheld.trace.evidence_gaps = [{ field: "maintenance_context", reason: "maintenance_context_missing_or_unresolved", owner_domain: "maintenance" }];
+  post.mockResolvedValue(withheld);
+  await act(async () => host.querySelector<HTMLButtonElement>("button")!.click());
+  expect(host.querySelector(".natural-briefing-line")).toBeNull();
+  expect(host.textContent).toContain("현재 근거 확인 규칙과 일치하지 않아");
+  expect(host.textContent).toContain("정비 이력과 작업 조건이 연결되지 않았습니다");
+});
 it("keeps the stored prose visible when regeneration fails", async () => {
   await render(); post.mockRejectedValue(new Error("provider unavailable"));
   await act(async () => host.querySelector<HTMLButtonElement>("button")!.click());
@@ -122,7 +137,7 @@ it("uses server replay responses without product API calls and withdraws rejecte
  const rejected={summary:null,trace:{fallback:true,materialization:{status:"fallback"}}} as unknown as OperationsAgentReviewSummaryResponse;
  await act(async()=>root.render(<NaturalBriefing {...props} providedResponse={rejected}/>));
  expect(host.querySelector('.natural-briefing-line')).toBeNull();
- expect(host.textContent).toContain("현재 판단으로 사용하지 않습니다");
+ expect(host.textContent).toContain("신뢰할 수 있는 브리핑을 만들지 못했습니다");
 });
 
 it("keeps in-flight generation bound while FILE observations advance", async () => {

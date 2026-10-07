@@ -65,6 +65,8 @@
 2. 정상 화면만이 아니라 historical 또는 ineligible 한 경우를 1회 포함한다.
 3. 30~60초 시연은 사용자 흐름을 보여주고, 별도 evidence card에는 상태표·API 경로·테스트 범위·한계를 둔다.
 
+상세 촬영 절차와 합격 기준은 `docs/plans/2026-10-07-solutionlink-demo-capture-runbook.md`를 따른다.
+
 **Acceptance:** 시연이 코드와 fixture로 다시 재현되고, “운영 검증” 또는 “모델 정확도” 같은 미측정 주장을 포함하지 않는다.
 
 ## Discriminating experiment

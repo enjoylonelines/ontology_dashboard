@@ -947,6 +947,7 @@ export interface OperationsAgentReviewSummaryResponse {
     reason: string | null;
     validation_errors: string[];
     fallback_validation_errors?: string[];
+    evidence_gaps?: Array<{ field: string; reason: string; owner_domain: string }>;
     reuse_eligibility: "EXACT_VALIDATED" | "LATEST_STORED" | "INELIGIBLE";
     current_ready: boolean;
     historical_available: boolean;

@@ -9,6 +9,10 @@
 .natural-briefing button:focus-visible, .natural-briefing summary:focus-visible { outline: 2px solid #356597; outline-offset: 3px; }
 .natural-briefing p { margin: 0; }
 .natural-briefing .natural-briefing-status { font-size: 11px; color: #596f83; margin: 4px 0 8px; }
+.natural-briefing .natural-briefing-gaps { margin: 8px 0; padding: 9px 11px; border: 1px solid #b4c6d8; border-radius: 4px; background: #fff; font-size: 12px; }
+.natural-briefing .natural-briefing-gaps strong { color: #365779; }
+.natural-briefing .natural-briefing-gaps ul { margin: 4px 0; padding-left: 18px; }
+.natural-briefing .natural-briefing-gaps p { color: #596f83; font-size: 11px; }
 .natural-briefing .natural-briefing-prose { display: grid; gap: 8px; }
 .natural-briefing .natural-briefing-line { margin-top: 0; }
 .natural-briefing .natural-briefing-line p { white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -51,3 +55,4 @@ html[data-theme="dark"] .natural-briefing .natural-briefing-line strong { color:
 html[data-theme="dark"] .natural-briefing .natural-briefing-line.is-list::before { background: #80b5ff; }
 html[data-theme="dark"] .natural-briefing .natural-briefing-refresh { background: #182334; color: #dbeafe; border-color: #62768e; }
 html[data-theme="dark"] .natural-briefing .natural-briefing-refresh.is-failed { background: #3a1b22; color: #ffd6dd; border-color: #8a4b56; }
+html[data-theme="dark"] .natural-briefing .natural-briefing-gaps { background: #182334; border-color: #62768e; }

@@ -37,12 +37,13 @@ function accepted(response: OperationsAgentReviewSummaryResponse, assetId: strin
 function statusLabel(response: OperationsAgentReviewSummaryResponse, summary: OperationsAgentReviewSummary | null) {
   if (!summary) {
     if (response.trace.fallback) {
-      const reason = response.trace.reason === "summary_validation_failed"
-        ? "응답 검증을 통과하지 못했습니다."
-        : response.trace.reason === "agent_review_summary_provider_disabled"
-          ? "AI 제공자가 비활성화되어 있습니다."
-          : "현재 근거로 검증된 브리핑을 만들지 못했습니다.";
-      return `${reason} 이 결과는 현재 판단으로 사용하지 않습니다. 판단 근거를 확인한 뒤 필요하면 브리핑을 다시 생성하세요.`;
+      if (response.trace.reason === "summary_validation_failed") {
+        return "생성한 설명이 현재 근거 확인 규칙과 일치하지 않아 표시하지 않았습니다. 이 설명은 현재 판단에 사용하지 않습니다. 아래 확인이 필요한 데이터를 점검한 뒤 필요하면 브리핑을 다시 요청할 수 있습니다.";
+      }
+      if (response.trace.reason === "agent_review_summary_provider_disabled") {
+        return "지금은 이 화면에서 AI 브리핑을 만들 수 없습니다. 설비 상태와 점검 기록을 먼저 확인하고, 브리핑 생성이 가능한 경우 다시 요청해 주세요.";
+      }
+      return "현재 설비 상태와 점검 기록을 바탕으로 신뢰할 수 있는 브리핑을 만들지 못했습니다. 이 설명은 보여드리지 않고 현재 판단에도 사용하지 않습니다. 근거를 확인한 뒤 필요하면 브리핑을 다시 요청할 수 있습니다.";
     }
     return "현재 근거의 브리핑이 아직 없습니다. 현재 근거가 준비된 뒤 다시 조회하거나 브리핑 생성을 요청하세요.";
   }
@@ -55,6 +56,17 @@ function statusLabel(response: OperationsAgentReviewSummaryResponse, summary: Op
         : "저장된 브리핑 · 준비 상태 확인 필요";
 }
 
+function evidenceGapLabel(gap: { field: string; reason: string }) {
+  const reason = gap.reason.split(":", 1)[0];
+  if (reason === "maintenance_context_missing_or_unresolved") return "정비 이력과 작업 조건";
+  if (reason === "operation_context_missing_or_unresolved") return "생산 일정과 작업 조건";
+  if (reason === "criticality_missing_or_unresolved" || reason === "criticality_basis_missing_or_unresolved") return "설비 중요도 기준";
+  if (reason === "review_priority_inputs_missing_or_unresolved") return "검토 우선순위 산정 기준";
+  if (reason === "field_inspection_location_reference_unavailable") return "현장 점검 위치 기준";
+  if (reason === "adapter_context_unavailable") return "연결된 업무 맥락";
+  return "브리핑 판단에 필요한 연결 근거";
+}
+
 function responseObservedAt(response: OperationsAgentReviewSummaryResponse, fallback?: string | null) {
   return response.trace.materialization?.decision_as_of ?? response.trace.materialization?.generated_at ?? fallback ?? null;
 }
@@ -63,6 +75,7 @@ function Briefing(props: Props & { revealed: Set<string> }) {
   const supported = props.workspaceId === "manufacturing-demo" && Boolean(props.eventId);
   const [summaryKey, setSummaryKey] = useState<string | undefined>();
   const [summary, setSummary] = useState<OperationsAgentReviewSummary | null>(null);
+  const [evidenceGaps, setEvidenceGaps] = useState<Array<{ field: string; reason: string; owner_domain: string }>>([]);
   const [status, setStatus] = useState(supported ? "브리핑 조회 중" : "선택한 근거에 연결된 브리핑이 없습니다.");
   const [busy, setBusy] = useState(supported);
   const [basis, setBasis] = useState({eventId: props.eventId, observedAt: props.observedAt});
@@ -75,6 +88,7 @@ function Briefing(props: Props & { revealed: Set<string> }) {
     if (controller.signal.aborted) return;
     const next = accepted(response, props.assetId);
     setSummary(next);
+    setEvidenceGaps(next ? [] : response.trace.evidence_gaps ?? []);
     setSummaryKey(next ? response.trace.materialization?.summary_key : undefined);
     if (next) setBasis({eventId: props.eventId, observedAt: responseObservedAt(response, props.observedAt)});
     setStatus(statusLabel(response, next));
@@ -85,6 +99,7 @@ function Briefing(props: Props & { revealed: Set<string> }) {
     if (props.providedResponse) {
       const next = accepted(props.providedResponse, props.assetId);
       setSummary(next); setSummaryKey(next ? props.providedResponse.trace.materialization?.summary_key : undefined);
+      setEvidenceGaps(next ? [] : props.providedResponse.trace.evidence_gaps ?? []);
       if (next) setBasis({eventId: props.eventId, observedAt: responseObservedAt(props.providedResponse, props.observedAt)});
       setBusy(false);
       setStatus(statusLabel(props.providedResponse, next));
@@ -126,7 +141,10 @@ function Briefing(props: Props & { revealed: Set<string> }) {
       const result = await createOperationsAgentReviewSummary({ ...input, signal: controller.signal });
       if (controller.signal.aborted) return;
       if (!accepted(result, props.assetId)) {
-        setStatus("자연어 브리핑이 검증을 통과하지 못했습니다. 판단 근거를 확인하세요.");
+        setSummary(null);
+        setSummaryKey(undefined);
+        setEvidenceGaps(result.trace.evidence_gaps ?? []);
+        setStatus(statusLabel(result, null));
       } else {
         const next = accepted(result, props.assetId);
         setSummary(next);
@@ -158,6 +176,7 @@ function Briefing(props: Props & { revealed: Set<string> }) {
       {supported && props.canGenerate ? <button type="button" disabled={busy} onClick={() => void generate()}>{busy ? "처리 중" : summary ? "다시 생성" : "브리핑 생성"}</button> : null}
     </div>
     <p className="natural-briefing-status" role="status">{status}</p>
+    {!summary && evidenceGaps.length ? <section className="natural-briefing-gaps" aria-label="확인할 데이터"><strong>확인할 데이터</strong><ul>{evidenceGaps.map(gap => <li key={`${gap.field}:${gap.reason}`}>{evidenceGapLabel(gap)}이 연결되지 않았습니다.</li>)}</ul><p>원문 근거를 확인한 뒤 브리핑을 다시 요청할 수 있습니다.</p></section> : null}
     {summary ? <StreamingProse key={JSON.stringify([props.assetId, basis.eventId, props.role, quote])}
       rows={rows} identity={JSON.stringify([props.projectId, props.workspaceId, props.assetId, basis.eventId, props.role, quote])}
       revealed={props.revealed} evidenceScope={evidenceScope}/> : null}

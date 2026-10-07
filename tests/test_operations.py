@@ -2306,9 +2306,11 @@ def test_agent_review_summary_service_falls_back_when_provider_candidate_is_inva
 
     response = client.get("/api/objects/CNC-S04-L04-01/agent-review-summary")
     assert response.status_code == 200
-    assert response.json()["trace"]["reuse_eligibility"] == "INELIGIBLE"
-    assert response.json()["trace"]["current_ready"] is False
-    assert response.json()["trace"]["historical_available"] is False
+    payload = response.json()
+    assert payload["trace"]["reuse_eligibility"] == "INELIGIBLE"
+    assert payload["trace"]["current_ready"] is False
+    assert payload["trace"]["historical_available"] is False
+    assert payload["trace"]["evidence_gaps"] == payload["summary"]["evidence_gaps"]
 
 
 def test_domain_adapter_cnc_sop_guidance_does_not_match_compressor_assets() -> None:

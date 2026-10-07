@@ -42,8 +42,15 @@ it("does not expose generation without permission", async () => {
 });
 it.each(["fallback", "wrong-asset"])("does not show %s prose", async kind => {
   const value = response(kind === "wrong-asset" ? "B" : "A");
-  if (kind === "fallback") value.trace.fallback = true;
+  if (kind === "fallback") {
+    value.trace.fallback = true;
+    value.trace.reason = "summary_validation_failed";
+  }
   get.mockResolvedValue(value); await render(); expect(host.querySelector(".natural-briefing-line")).toBeNull();
+  if (kind === "fallback") {
+    expect(host.textContent).toContain("응답 검증을 통과하지 못했습니다");
+    expect(host.textContent).toContain("현재 판단으로 사용하지 않습니다");
+  }
 });
 it.each(["fallback", "stale"] as const)("shows stored %s prose when it is a saved record", async status => {
   const value = response("A", "저장된 이전 시점 설명");
@@ -67,6 +74,7 @@ it("shows pending when neither current nor historical summary is available", asy
   get.mockResolvedValue({ summary: null, trace: { fallback: false, reuse_eligibility: "INELIGIBLE", current_ready: false, historical_available: false, materialization: { status: "pending", summary_key: "pending" } } } as unknown as OperationsAgentReviewSummaryResponse);
   await render();
   expect(host.textContent).toContain("현재 근거의 브리핑이 아직 없습니다.");
+  expect(host.textContent).toContain("브리핑 생성을 요청하세요");
   expect(host.querySelector(".natural-briefing-line")).toBeNull();
 });
 it("discards late responses after selection changes", async () => {
@@ -114,7 +122,7 @@ it("uses server replay responses without product API calls and withdraws rejecte
  const rejected={summary:null,trace:{fallback:true,materialization:{status:"fallback"}}} as unknown as OperationsAgentReviewSummaryResponse;
  await act(async()=>root.render(<NaturalBriefing {...props} providedResponse={rejected}/>));
  expect(host.querySelector('.natural-briefing-line')).toBeNull();
- expect(host.textContent).toContain("검증을 통과하지 못한 응답");
+ expect(host.textContent).toContain("현재 판단으로 사용하지 않습니다");
 });
 
 it("keeps in-flight generation bound while FILE observations advance", async () => {

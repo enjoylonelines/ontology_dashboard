@@ -35,7 +35,17 @@ function accepted(response: OperationsAgentReviewSummaryResponse, assetId: strin
 }
 
 function statusLabel(response: OperationsAgentReviewSummaryResponse, summary: OperationsAgentReviewSummary | null) {
-  if (!summary) return response.trace.fallback ? "검증된 자연어 브리핑이 없습니다. 아래 판단 근거를 확인하세요." : "현재 근거의 브리핑이 아직 없습니다.";
+  if (!summary) {
+    if (response.trace.fallback) {
+      const reason = response.trace.reason === "summary_validation_failed"
+        ? "응답 검증을 통과하지 못했습니다."
+        : response.trace.reason === "agent_review_summary_provider_disabled"
+          ? "AI 제공자가 비활성화되어 있습니다."
+          : "현재 근거로 검증된 브리핑을 만들지 못했습니다.";
+      return `${reason} 이 결과는 현재 판단으로 사용하지 않습니다. 판단 근거를 확인한 뒤 필요하면 브리핑을 다시 생성하세요.`;
+    }
+    return "현재 근거의 브리핑이 아직 없습니다. 현재 근거가 준비된 뒤 다시 조회하거나 브리핑 생성을 요청하세요.";
+  }
   return response.trace.materialization?.status === "fallback" || response.trace.fallback || summary.mode !== "llm"
     ? "저장된 보조 브리핑 · LLM 응답 검증 실패 시 기준 근거로 구성"
     : response.trace.historical_available && !response.trace.current_ready
@@ -77,7 +87,7 @@ function Briefing(props: Props & { revealed: Set<string> }) {
       setSummary(next); setSummaryKey(next ? props.providedResponse.trace.materialization?.summary_key : undefined);
       if (next) setBasis({eventId: props.eventId, observedAt: responseObservedAt(props.providedResponse, props.observedAt)});
       setBusy(false);
-      setStatus(next ? statusLabel(props.providedResponse, next) : props.providedResponse.trace.fallback ? "검증을 통과하지 못한 응답입니다. 판단 근거를 직접 확인하세요." : "현재 근거의 브리핑 검증을 기다리고 있습니다.");
+      setStatus(statusLabel(props.providedResponse, next));
     } else if (supported) void read(controller).catch(() => {
       if (!controller.signal.aborted) setStatus("브리핑을 불러오지 못했습니다. 판단 근거는 계속 확인할 수 있습니다.");
     }).finally(() => { if (!controller.signal.aborted) setBusy(false); });

@@ -38,6 +38,7 @@
 **시연 목적:** 검증되지 않은 AI prose를 오류 문구나 최신 판단처럼 보이지 않게 한다.
 
 1. controlled response fixture로 `fallback=true` 및 검증 불가 상태를 재생한다.
+   - 고정 진입 화면: `systems/frontend/e2e/fixtures/solutionlink-validation-hold-preview.html`
 2. 자연어 브리핑 본문이 표시되지 않는지 확인한다.
 3. 화면의 자연어 안내가 다음 세 의미를 모두 전달하는지 확인한다.
    - 생성한 설명이 근거 확인 규칙과 일치하지 않아 표시되지 않는다.

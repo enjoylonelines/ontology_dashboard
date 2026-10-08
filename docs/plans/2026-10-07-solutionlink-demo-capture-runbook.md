@@ -18,6 +18,8 @@
 **권장 길이:** 45~60초
 **시연 목적:** AI가 결정을 자동화하는 것이 아니라, 생산관리자가 근거·시점·한계를 보고 다음 행동을 검토하는 흐름을 보여준다.
 
+고정 재생 화면은 `systems/frontend/e2e/fixtures/solutionlink-main-scenario-preview.html`이며, A/C 자동 확인은 `cd systems/frontend && npm run test:e2e:solutionlink`으로 실행한다.
+
 1. `생산 대응 검토` 화면을 열고 정비 승인 요청 한 건을 선택한다.
 2. 선택 설비의 생산 영향, 정지 시간, 비용 기준을 보여준다.
    - 비용과 손실은 가정/추정인지 화면 문구 그대로 둔다.
@@ -50,6 +52,8 @@
 **시연 목적:** 검증 보류를 단순 오류로 끝내지 않고, 실제 패킷이 밝힌 근거 공백과 다음 행동을 설명한다.
 
 1. `trace.evidence_gaps`에 하나 이상의 패킷 검증 완료 공백이 포함된 controlled response fixture를 재생한다.
+   - 고정 진입 화면: `systems/frontend/e2e/fixtures/solutionlink-evidence-gap-preview.html`
+   - 자동 확인: `cd systems/frontend && npm run test:e2e:solutionlink`
 2. AI 브리핑 prose가 숨겨진 상태에서 `확인할 데이터` 영역이 표시되는지 확인한다.
 3. fixture에 해당하는 항목만 자연어로 표시되는지 확인한다.
    - `maintenance_context_missing_or_unresolved` → `정비 이력과 작업 조건`
